@@ -84,3 +84,18 @@ export const useAuth = () => {
   }
   return ctx;
 };
+
+/**
+ * Strict variant: throws if used outside <AuthProvider>.
+ * Use this inside other providers (e.g. CartProvider, WishlistProvider)
+ * to fail fast with a clear error instead of silently degrading.
+ */
+export const useAuthStrict = (consumerName: string): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error(
+      `[${consumerName}] AuthProvider is missing. Wrap <${consumerName}> with <AuthProvider> in App.tsx (AuthProvider must be an ancestor of ${consumerName}).`
+    );
+  }
+  return ctx;
+};
