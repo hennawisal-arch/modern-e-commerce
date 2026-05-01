@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ShoppingBag, Heart, User, Search, Menu, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -15,6 +16,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
   const { items: wishlistItems } = useWishlist();
+  const { user } = useAuth();
   const location = useLocation();
 
   return (
@@ -58,7 +60,7 @@ const Navbar = () => {
               </span>
             )}
           </Link>
-          <Link to="/login" className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+          <Link to={user ? "/account" : "/login"} className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <User className="w-[18px] h-[18px]" />
           </Link>
           <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden w-9 h-9 flex items-center justify-center text-foreground">

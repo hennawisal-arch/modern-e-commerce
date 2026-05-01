@@ -1,11 +1,58 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [placing, setPlacing] = useState(false);
+
+  const shipping = totalPrice >= 150 ? 0 : 9.99;
+  const grandTotal = totalPrice + shipping;
+
+  const handleCheckout = async () => {
+    if (!user) {
+      toast({ title: "Please sign in to checkout" });
+      navigate("/login");
+      return;
+    }
+    setPlacing(true);
+    const { data: order, error } = await supabase
+      .from("orders")
+      .insert({ user_id: user.id, total: grandTotal, status: "pending" })
+      .select()
+      .single();
+    if (error || !order) {
+      setPlacing(false);
+      toast({ title: "Checkout failed", description: error?.message, variant: "destructive" });
+      return;
+    }
+    const orderItems = items.map(i => ({
+      order_id: order.id,
+      product_id: i.product.id,
+      name: i.product.name,
+      price: i.product.price,
+      quantity: i.quantity,
+      size: i.size ?? null,
+      color: i.color ?? null,
+    }));
+    const { error: itemsErr } = await supabase.from("order_items").insert(orderItems);
+    setPlacing(false);
+    if (itemsErr) {
+      toast({ title: "Failed to save items", variant: "destructive" });
+      return;
+    }
+    await clearCart();
+    toast({ title: "Order placed!", description: `Total $${grandTotal.toFixed(2)}` });
+    navigate("/account");
+  };
 
   if (items.length === 0) {
     return (
@@ -76,14 +123,14 @@ const Cart = () => {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Shipping</span>
-            <span className="font-medium text-foreground">{totalPrice >= 150 ? "Free" : "$9.99"}</span>
+            <span className="font-medium text-foreground">{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
           </div>
           <div className="border-t border-border pt-4 flex justify-between">
             <span className="font-heading font-bold text-foreground">Total</span>
-            <span className="font-heading font-bold text-foreground text-lg">${(totalPrice + (totalPrice >= 150 ? 0 : 9.99)).toFixed(2)}</span>
+            <span className="font-heading font-bold text-foreground text-lg">${grandTotal.toFixed(2)}</span>
           </div>
-          <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm">
-            Checkout
+          <Button onClick={handleCheckout} disabled={placing} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm">
+            {placing ? "Placing order…" : "Checkout"}
           </Button>
           <Button asChild variant="ghost" className="w-full text-muted-foreground">
             <Link to="/products">Continue Shopping</Link>
