@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Product, products } from "@/data/products";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStrict } from "@/context/AuthContext";
 
 interface WishlistContextType {
   items: Product[];
@@ -14,7 +14,7 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export const WishlistProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user } = useAuthStrict("WishlistProvider");
   const [items, setItems] = useState<Product[]>([]);
 
   useEffect(() => {
