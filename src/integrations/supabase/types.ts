@@ -109,6 +109,24 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          id: number
+          name: string
+          price: number
+        }
+        Insert: {
+          id: number
+          name: string
+          price: number
+        }
+        Update: {
+          id?: number
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
