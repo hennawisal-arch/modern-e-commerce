@@ -44,6 +44,45 @@ export type Database = {
         }
         Relationships: []
       }
+      order_audit_log: {
+        Row: {
+          created_at: string
+          id: string
+          item_count: number
+          order_id: string | null
+          product_ids: number[]
+          quantities: number[]
+          reason: string | null
+          status: string
+          total: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          order_id?: string | null
+          product_ids?: number[]
+          quantities?: number[]
+          reason?: string | null
+          status: string
+          total?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          order_id?: string | null
+          product_ids?: number[]
+          quantities?: number[]
+          reason?: string | null
+          status?: string
+          total?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           color: string | null
