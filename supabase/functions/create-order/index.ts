@@ -39,13 +39,44 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    const audit = async (fields: {
+      product_ids?: number[];
+      quantities?: number[];
+      item_count?: number;
+      total?: number | null;
+      status: "success" | "rejected" | "error";
+      reason?: string | null;
+      order_id?: string | null;
+    }) => {
+      try {
+        await admin.from("order_audit_log").insert({
+          user_id: userId,
+          product_ids: fields.product_ids ?? [],
+          quantities: fields.quantities ?? [],
+          item_count: fields.item_count ?? 0,
+          total: fields.total ?? null,
+          status: fields.status,
+          reason: fields.reason ?? null,
+          order_id: fields.order_id ?? null,
+        });
+      } catch (_) {
+        // Never let audit failures break checkout response.
+      }
+    };
+
     const body = await req.json().catch(() => ({}));
     const items: CartItemInput[] = Array.isArray(body?.items) ? body.items : [];
     if (items.length === 0) {
+      await audit({ status: "rejected", reason: "empty_cart" });
       return new Response(JSON.stringify({ error: "Cart is empty" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const productIds = items.map((i) => i?.product_id).filter((n) => Number.isInteger(n)) as number[];
+    const quantities = items.map((i) => i?.quantity).filter((n) => Number.isInteger(n)) as number[];
 
     // Validate input shape
     for (const it of items) {
@@ -54,17 +85,24 @@ Deno.serve(async (req) => {
         !Number.isInteger(it.quantity) ||
         it.quantity <= 0 || it.quantity > 100
       ) {
+        await audit({
+          product_ids: productIds, quantities, item_count: items.length,
+          status: "rejected", reason: "invalid_item",
+        });
         return new Response(JSON.stringify({ error: "Invalid cart item" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const ids = [...new Set(items.map((i) => i.product_id))];
+    const ids = [...new Set(productIds)];
     const { data: products, error: prodErr } = await admin
       .from("products").select("id, name, price").in("id", ids);
     if (prodErr || !products) {
+      await audit({
+        product_ids: productIds, quantities, item_count: items.length,
+        status: "error", reason: "products_fetch_failed",
+      });
       return new Response(JSON.stringify({ error: "Failed to load products" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -72,6 +110,10 @@ Deno.serve(async (req) => {
     const priceMap = new Map(products.map((p) => [p.id, p]));
     for (const it of items) {
       if (!priceMap.has(it.product_id)) {
+        await audit({
+          product_ids: productIds, quantities, item_count: items.length,
+          status: "rejected", reason: "unknown_product",
+        });
         return new Response(JSON.stringify({ error: `Unknown product ${it.product_id}` }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -87,6 +129,10 @@ Deno.serve(async (req) => {
       .insert({ user_id: userId, total, status: "pending" })
       .select().single();
     if (orderErr || !order) {
+      await audit({
+        product_ids: productIds, quantities, item_count: items.length,
+        total, status: "error", reason: "order_insert_failed",
+      });
       return new Response(JSON.stringify({ error: orderErr?.message ?? "Order failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -106,10 +152,19 @@ Deno.serve(async (req) => {
     });
     const { error: itemsErr } = await admin.from("order_items").insert(orderItems);
     if (itemsErr) {
+      await audit({
+        product_ids: productIds, quantities, item_count: items.length,
+        total, status: "error", reason: "items_insert_failed", order_id: order.id,
+      });
       return new Response(JSON.stringify({ error: itemsErr.message }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await audit({
+      product_ids: productIds, quantities, item_count: items.length,
+      total, status: "success", order_id: order.id,
+    });
 
     return new Response(JSON.stringify({ order_id: order.id, total }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
