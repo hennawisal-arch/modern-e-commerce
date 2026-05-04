@@ -24,33 +24,27 @@ const Cart = () => {
       return;
     }
     setPlacing(true);
-    const { data: order, error } = await supabase
-      .from("orders")
-      .insert({ user_id: user.id, total: grandTotal, status: "pending" })
-      .select()
-      .single();
-    if (error || !order) {
-      setPlacing(false);
-      toast({ title: "Checkout failed", description: error?.message, variant: "destructive" });
-      return;
-    }
-    const orderItems = items.map(i => ({
-      order_id: order.id,
-      product_id: i.product.id,
-      name: i.product.name,
-      price: i.product.price,
-      quantity: i.quantity,
-      size: i.size ?? null,
-      color: i.color ?? null,
-    }));
-    const { error: itemsErr } = await supabase.from("order_items").insert(orderItems);
+    const { data, error } = await supabase.functions.invoke("create-order", {
+      body: {
+        items: items.map(i => ({
+          product_id: i.product.id,
+          quantity: i.quantity,
+          size: i.size ?? null,
+          color: i.color ?? null,
+        })),
+      },
+    });
     setPlacing(false);
-    if (itemsErr) {
-      toast({ title: "Failed to save items", variant: "destructive" });
+    if (error || (data as any)?.error) {
+      toast({
+        title: "Checkout failed",
+        description: error?.message ?? (data as any)?.error,
+        variant: "destructive",
+      });
       return;
     }
     await clearCart();
-    toast({ title: "Order placed!", description: `Total $${grandTotal.toFixed(2)}` });
+    toast({ title: "Order placed!", description: `Total $${Number((data as any).total).toFixed(2)}` });
     navigate("/account");
   };
 
