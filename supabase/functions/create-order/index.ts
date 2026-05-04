@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const items: CartItemInput[] = Array.isArray(body?.items) ? body.items : [];
     if (items.length === 0) {
-      await audit({ status: "rejected", reason: "empty_cart" });
+      await audit({ status: "rejected", reason: "empty_cart", total: 0, item_count: 0 });
       return new Response(JSON.stringify({ error: "Cart is empty" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
