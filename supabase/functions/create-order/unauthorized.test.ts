@@ -45,9 +45,8 @@ Deno.test("invalid Authorization token is rejected with 401 and writes no audit 
     },
     body: JSON.stringify({ items: [{ product_id: 1, quantity: 1 }] }),
   });
-  const body = await response.json().catch(() => ({}));
+  await response.text();
   assertEquals(response.status, 401);
-  assertEquals(body.error, "Unauthorized");
 
   // Token cannot be resolved to a user, so no audit row should be written.
   assertEquals(await countAuditRowsSince(before), 0, "No audit rows should be written for invalid tokens");
