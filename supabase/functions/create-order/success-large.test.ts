@@ -70,8 +70,46 @@ Deno.test("larger cart (4 items) writes success audit row with correct item_coun
     assertEquals(Number(audit.total), expectedTotal);
     assertEquals(audit.item_count, expectedItemCount);
     assertEquals(audit.order_id, responseBody.order_id);
-    assertEquals(audit.product_ids, items.map((i) => i.product_id));
-    assertEquals(audit.quantities, quantities);
+
+    const expectedProductIds = items.map((i) => i.product_id);
+
+    // Shape assertions: must be arrays of the same length as the cart.
+    assert(Array.isArray(audit.product_ids), "product_ids must be an array");
+    assert(Array.isArray(audit.quantities), "quantities must be an array");
+    assertEquals(audit.product_ids.length, expectedItemCount, "product_ids length mismatch");
+    assertEquals(audit.quantities.length, expectedItemCount, "quantities length mismatch");
+
+    // Element types: every entry must be an integer.
+    for (const pid of audit.product_ids) {
+      assert(Number.isInteger(pid), `product_id ${pid} is not an integer`);
+    }
+    for (const q of audit.quantities) {
+      assert(Number.isInteger(q), `quantity ${q} is not an integer`);
+    }
+
+    // Order-preserving equality: positional alignment must match the cart input.
+    assertEquals(audit.product_ids, expectedProductIds, "product_ids order/shape mismatch");
+    assertEquals(audit.quantities, quantities, "quantities order/shape mismatch");
+    for (let i = 0; i < expectedItemCount; i++) {
+      assertEquals(audit.product_ids[i], expectedProductIds[i], `product_ids[${i}] mismatch`);
+      assertEquals(audit.quantities[i], quantities[i], `quantities[${i}] mismatch`);
+    }
+
+    // Cross-check: audit arrays align with persisted order_items for the same order.
+    const { data: persistedItems, error: itemsErr } = await admin
+      .from("order_items")
+      .select("product_id, quantity")
+      .eq("order_id", responseBody.order_id);
+    assert(!itemsErr, itemsErr?.message);
+    assert(persistedItems && persistedItems.length === expectedItemCount);
+    const persistedQtyByPid = new Map(persistedItems.map((r) => [r.product_id, r.quantity]));
+    for (let i = 0; i < expectedItemCount; i++) {
+      assertEquals(
+        persistedQtyByPid.get(audit.product_ids[i]),
+        audit.quantities[i],
+        `audit qty for product ${audit.product_ids[i]} does not match order_items`,
+      );
+    }
 
     await admin.from("order_items").delete().eq("order_id", responseBody.order_id);
     await admin.from("orders").delete().eq("id", responseBody.order_id);
