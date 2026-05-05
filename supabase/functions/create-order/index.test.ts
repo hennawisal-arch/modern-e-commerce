@@ -49,7 +49,7 @@ Deno.test("empty cart writes rejected audit row with total 0", async () => {
 
     const { data: auditRows, error: auditError } = await admin
       .from("order_audit_log")
-      .select("status, reason, total, item_count, user_id, created_at")
+      .select("status, reason, total, item_count, user_id, product_ids, quantities, created_at")
       .eq("user_id", createdUser.user.id)
       .eq("reason", "empty_cart")
       .gte("created_at", before)
@@ -64,6 +64,14 @@ Deno.test("empty cart writes rejected audit row with total 0", async () => {
     assertEquals(Number(audit.total ?? 0), 0);
     assertEquals(audit.item_count, 0);
     assertEquals(audit.user_id, createdUser.user.id);
+
+    // Empty-array shape assertions for product_ids and quantities.
+    assert(Array.isArray(audit.product_ids), "product_ids must be an array");
+    assert(Array.isArray(audit.quantities), "quantities must be an array");
+    assertEquals(audit.product_ids.length, 0, "product_ids should be empty");
+    assertEquals(audit.quantities.length, 0, "quantities should be empty");
+    assertEquals(audit.product_ids, []);
+    assertEquals(audit.quantities, []);
   } finally {
     await admin.auth.admin.deleteUser(createdUser.user.id);
   }
