@@ -75,6 +75,7 @@ Deno.test("missing Authorization header writes a rejected audit row with null us
   assertEquals(row.product_ids, []);
   assertEquals(row.quantities, []);
   assertEquals(row.order_id, null);
+  assertSatisfiesCheckConstraints(row);
 });
 
 Deno.test("invalid Authorization token writes a rejected audit row with null user_id", async () => {
