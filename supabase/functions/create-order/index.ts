@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const admin = adminEarly;
 
     const audit = async (fields: {
       product_ids?: number[];
