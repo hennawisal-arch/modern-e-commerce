@@ -104,4 +104,5 @@ Deno.test("invalid Authorization token writes a rejected audit row with null use
   assertEquals(row.product_ids, []);
   assertEquals(row.quantities, []);
   assertEquals(row.order_id, null);
+  assertSatisfiesCheckConstraints(row);
 });
