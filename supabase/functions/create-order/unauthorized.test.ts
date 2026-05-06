@@ -20,6 +20,41 @@ async function fetchAuditRows(since: string, reason: string) {
   return data ?? [];
 }
 
+const ALLOWED_STATUSES = new Set(["success", "rejected", "error"]);
+
+function assertSatisfiesCheckConstraints(row: {
+  status: string;
+  user_id: string | null;
+  total: number | null;
+  item_count: number;
+  product_ids: number[];
+  quantities: number[];
+  order_id: string | null;
+}) {
+  // status whitelist (order_audit_log_status_valid)
+  assert(ALLOWED_STATUSES.has(row.status), `status must be one of success/rejected/error, got ${row.status}`);
+
+  // arrays + item_count consistency (order_audit_log_arrays_match)
+  assert(Array.isArray(row.product_ids), "product_ids must be an array");
+  assert(Array.isArray(row.quantities), "quantities must be an array");
+  assertEquals(row.product_ids.length, row.quantities.length, "product_ids and quantities must have equal length");
+  assertEquals(row.product_ids.length, row.item_count, "array length must equal item_count");
+
+  // non-negative totals (order_audit_log_nonnegative)
+  assert(row.item_count >= 0, "item_count must be non-negative");
+  assert(row.total === null || Number(row.total) >= 0, "total must be null or non-negative");
+
+  // null user_id shape (order_audit_log_null_user_shape)
+  if (row.user_id === null) {
+    assertEquals(row.status, "rejected", "null user_id rows must be status=rejected");
+    assertEquals(row.total, null, "null user_id rows must have null total");
+    assertEquals(row.item_count, 0, "null user_id rows must have item_count=0");
+    assertEquals(row.product_ids, [], "null user_id rows must have empty product_ids");
+    assertEquals(row.quantities, [], "null user_id rows must have empty quantities");
+    assertEquals(row.order_id, null, "null user_id rows must have null order_id");
+  }
+}
+
 Deno.test("missing Authorization header writes a rejected audit row with null user_id", async () => {
   const before = new Date().toISOString();
 
@@ -42,6 +77,7 @@ Deno.test("missing Authorization header writes a rejected audit row with null us
   assertEquals(row.product_ids, []);
   assertEquals(row.quantities, []);
   assertEquals(row.order_id, null);
+  assertSatisfiesCheckConstraints(row);
 });
 
 Deno.test("invalid Authorization token writes a rejected audit row with null user_id", async () => {
@@ -70,4 +106,5 @@ Deno.test("invalid Authorization token writes a rejected audit row with null use
   assertEquals(row.product_ids, []);
   assertEquals(row.quantities, []);
   assertEquals(row.order_id, null);
+  assertSatisfiesCheckConstraints(row);
 });
