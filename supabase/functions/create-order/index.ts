@@ -16,23 +16,41 @@ interface CartItemInput {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const adminEarly = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  const auditUnauth = async (reason: string) => {
+    try {
+      await adminEarly.from("order_audit_log").insert({
+        user_id: null,
+        product_ids: [],
+        quantities: [],
+        item_count: 0,
+        total: null,
+        status: "rejected",
+        reason,
+        order_id: null,
+      });
+    } catch (_) { /* never break response */ }
+  };
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      await auditUnauth("missing_auth_header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData.user) {
+      await auditUnauth("invalid_auth_token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
