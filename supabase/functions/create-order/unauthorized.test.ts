@@ -9,16 +9,18 @@ const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/create-order`;
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-async function countAuditRowsSince(since: string): Promise<number> {
-  const { count, error } = await admin
+async function fetchAuditRows(since: string, reason: string) {
+  const { data, error } = await admin
     .from("order_audit_log")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", since);
+    .select("status, reason, user_id, total, item_count, product_ids, quantities, order_id, created_at")
+    .gte("created_at", since)
+    .eq("reason", reason)
+    .order("created_at", { ascending: false });
   assert(!error, error?.message);
-  return count ?? 0;
+  return data ?? [];
 }
 
-Deno.test("missing Authorization header is rejected with 401 and writes no audit row (no user_id known)", async () => {
+Deno.test("missing Authorization header writes a rejected audit row with null user_id", async () => {
   const before = new Date().toISOString();
 
   const response = await fetch(FUNCTION_URL, {
@@ -29,11 +31,20 @@ Deno.test("missing Authorization header is rejected with 401 and writes no audit
   await response.text();
   assertEquals(response.status, 401);
 
-  // No user_id can be derived from a missing token, so no audit row should be written.
-  assertEquals(await countAuditRowsSince(before), 0, "No audit rows should be written for unauth requests");
+  const rows = await fetchAuditRows(before, "missing_auth_header");
+  assert(rows.length >= 1, "Expected at least one audit row for missing_auth_header");
+  const row = rows[0];
+  assertEquals(row.status, "rejected");
+  assertEquals(row.reason, "missing_auth_header");
+  assertEquals(row.user_id, null);
+  assertEquals(row.item_count, 0);
+  assertEquals(row.total, null);
+  assertEquals(row.product_ids, []);
+  assertEquals(row.quantities, []);
+  assertEquals(row.order_id, null);
 });
 
-Deno.test("invalid Authorization token is rejected with 401 and writes no audit row", async () => {
+Deno.test("invalid Authorization token writes a rejected audit row with null user_id", async () => {
   const before = new Date().toISOString();
 
   const response = await fetch(FUNCTION_URL, {
@@ -48,6 +59,15 @@ Deno.test("invalid Authorization token is rejected with 401 and writes no audit 
   await response.text();
   assertEquals(response.status, 401);
 
-  // Token cannot be resolved to a user, so no audit row should be written.
-  assertEquals(await countAuditRowsSince(before), 0, "No audit rows should be written for invalid tokens");
+  const rows = await fetchAuditRows(before, "invalid_auth_token");
+  assert(rows.length >= 1, "Expected at least one audit row for invalid_auth_token");
+  const row = rows[0];
+  assertEquals(row.status, "rejected");
+  assertEquals(row.reason, "invalid_auth_token");
+  assertEquals(row.user_id, null);
+  assertEquals(row.item_count, 0);
+  assertEquals(row.total, null);
+  assertEquals(row.product_ids, []);
+  assertEquals(row.quantities, []);
+  assertEquals(row.order_id, null);
 });
