@@ -18,6 +18,8 @@ async function fetchAuditRows(since: string, reason: string) {
     .order("created_at", { ascending: false });
   assert(!error, error?.message);
   return data ?? [];
+}
+
 const ALLOWED_STATUSES = new Set(["success", "rejected", "error"]);
 
 function assertSatisfiesCheckConstraints(row: {
