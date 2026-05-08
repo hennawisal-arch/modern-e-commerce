@@ -109,8 +109,9 @@ const Checkout = () => {
     }
 
     await clearCart();
+    const orderId = (data as any)?.order_id;
     toast({ title: "Order placed!", description: `Total $${Number((data as any).total).toFixed(2)}` });
-    navigate("/account");
+    navigate(orderId ? `/orders/${orderId}` : "/account");
   };
 
   const fields: Array<{ key: keyof ShippingForm; label: string; type?: string; full?: boolean; autoComplete?: string }> = [
