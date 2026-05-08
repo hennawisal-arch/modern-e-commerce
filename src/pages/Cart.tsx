@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -12,40 +10,17 @@ const Cart = () => {
   const { items, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [placing, setPlacing] = useState(false);
 
   const shipping = totalPrice >= 150 ? 0 : 9.99;
   const grandTotal = totalPrice + shipping;
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!user) {
       toast({ title: "Please sign in to checkout" });
       navigate("/login");
       return;
     }
-    setPlacing(true);
-    const { data, error } = await supabase.functions.invoke("create-order", {
-      body: {
-        items: items.map(i => ({
-          product_id: i.product.id,
-          quantity: i.quantity,
-          size: i.size ?? null,
-          color: i.color ?? null,
-        })),
-      },
-    });
-    setPlacing(false);
-    if (error || (data as any)?.error) {
-      toast({
-        title: "Checkout failed",
-        description: error?.message ?? (data as any)?.error,
-        variant: "destructive",
-      });
-      return;
-    }
-    await clearCart();
-    toast({ title: "Order placed!", description: `Total $${Number((data as any).total).toFixed(2)}` });
-    navigate("/account");
+    navigate("/checkout");
   };
 
   if (items.length === 0) {
@@ -123,8 +98,8 @@ const Cart = () => {
             <span className="font-heading font-bold text-foreground">Total</span>
             <span className="font-heading font-bold text-foreground text-lg">${grandTotal.toFixed(2)}</span>
           </div>
-          <Button onClick={handleCheckout} disabled={placing} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm">
-            {placing ? "Placing order…" : "Checkout"}
+          <Button onClick={handleCheckout} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm">
+            Checkout
           </Button>
           <Button asChild variant="ghost" className="w-full text-muted-foreground">
             <Link to="/products">Continue Shopping</Link>
