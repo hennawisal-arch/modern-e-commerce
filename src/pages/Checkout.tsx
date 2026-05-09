@@ -115,6 +115,7 @@ const Checkout = () => {
           color: i.color ?? null,
         })),
         shipping: parsed.data,
+        payment_method: paymentMethod,
       },
     });
     setPlacing(false);
