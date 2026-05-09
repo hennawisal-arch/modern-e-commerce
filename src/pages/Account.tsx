@@ -134,12 +134,25 @@ const Account = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-heading font-bold">${Number(o.total).toFixed(2)}</p>
-                      <span className="text-xs uppercase tracking-wider text-accent">{o.status}</span>
+                      <span className={`inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(o.status)}`}>
+                        {o.status}
+                      </span>
                     </div>
                   </div>
-                  <ul className="text-sm text-muted-foreground space-y-0.5">
+                  <ul className="text-sm text-muted-foreground space-y-0.5 mb-3">
                     {o.order_items?.map((it, i) => <li key={i}>{it.quantity}× {it.name}</li>)}
                   </ul>
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                    <Button asChild size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <Link to={`/orders/${o.id}`}><Eye className="w-3 h-3 mr-1" /> View</Link>
+                    </Button>
+                    <Button onClick={() => handleDownload(o)} size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <Download className="w-3 h-3 mr-1" /> Invoice
+                    </Button>
+                    <Button onClick={() => handleReorder(o)} size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <RotateCcw className="w-3 h-3 mr-1" /> Reorder
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
