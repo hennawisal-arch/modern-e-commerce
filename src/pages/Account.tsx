@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Package, LogOut, User as UserIcon } from "lucide-react";
+import { Package, LogOut, User as UserIcon, Download, RotateCcw, Eye } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { downloadInvoicePdf } from "@/lib/invoice";
+import { products as productsCatalog } from "@/data/products";
 
 interface Order {
   id: string;
   total: number;
   status: string;
   created_at: string;
-  order_items: { name: string; quantity: number; price: number }[];
+  payment_method: string | null;
+  shipping_address: any;
+  order_items: { product_id: number; name: string; quantity: number; price: number; size: string | null; color: string | null }[];
 }
 
 const Account = () => {
