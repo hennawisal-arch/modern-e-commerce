@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useCart } from "@/context/CartContext";
@@ -7,8 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Banknote } from "lucide-react";
 
 const shippingSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100),
@@ -42,6 +43,25 @@ const Checkout = () => {
   const [form, setForm] = useState<ShippingForm>(initialForm);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [placing, setPlacing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cod">("cod");
+
+  // Prefill from saved profile shipping address
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("shipping_address")
+        .eq("id", user.id)
+        .maybeSingle();
+      const saved = (data as any)?.shipping_address as Partial<ShippingForm> | null;
+      if (saved && typeof saved === "object") {
+        setForm(prev => ({ ...prev, ...saved, email: saved.email ?? user.email ?? prev.email }));
+      } else if (user.email) {
+        setForm(prev => ({ ...prev, email: prev.email || user.email! }));
+      }
+    })();
+  }, [user]);
 
   const shipping = totalPrice >= 150 ? 0 : 9.99;
   const grandTotal = totalPrice + shipping;
@@ -95,6 +115,7 @@ const Checkout = () => {
           color: i.color ?? null,
         })),
         shipping: parsed.data,
+        payment_method: paymentMethod,
       },
     });
     setPlacing(false);
@@ -151,6 +172,23 @@ const Checkout = () => {
               </div>
             ))}
           </div>
+
+          <div className="pt-4 border-t border-border">
+            <h2 className="font-heading font-bold text-lg text-foreground mb-3">Payment Method</h2>
+            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "cod")}>
+              <label
+                htmlFor="pay-cod"
+                className="flex items-center gap-3 p-4 border border-border rounded-md cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <RadioGroupItem value="cod" id="pay-cod" />
+                <Banknote className="w-5 h-5 text-accent" />
+                <div className="flex-1">
+                  <p className="font-medium text-foreground text-sm">Cash on Delivery</p>
+                  <p className="text-xs text-muted-foreground">Pay with cash when your order arrives.</p>
+                </div>
+              </label>
+            </RadioGroup>
+          </div>
         </div>
 
         <div className="bg-card rounded-lg p-6 h-fit space-y-4">
@@ -187,7 +225,7 @@ const Checkout = () => {
             disabled={placing}
             className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm"
           >
-            {placing ? "Placing order…" : "Pay & Place Order"}
+            {placing ? "Placing order…" : "Place Order"}
           </Button>
           <Button asChild variant="ghost" className="w-full text-muted-foreground">
             <Link to="/cart">Back to Cart</Link>

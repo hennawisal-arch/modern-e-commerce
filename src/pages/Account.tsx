@@ -1,23 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Package, LogOut, User as UserIcon } from "lucide-react";
+import { Package, LogOut, User as UserIcon, Download, RotateCcw, Eye } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { downloadInvoicePdf } from "@/lib/invoice";
+import { products as productsCatalog } from "@/data/products";
 
 interface Order {
   id: string;
   total: number;
   status: string;
   created_at: string;
-  order_items: { name: string; quantity: number; price: number }[];
+  payment_method: string | null;
+  shipping_address: any;
+  order_items: { product_id: number; name: string; quantity: number; price: number; size: string | null; color: string | null }[];
 }
 
 const Account = () => {
   const { user, loading, signOut } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -32,7 +38,7 @@ const Account = () => {
     (async () => {
       const [{ data: profile }, { data: ords }] = await Promise.all([
         supabase.from("profiles").select("name").eq("id", user.id).maybeSingle(),
-        supabase.from("orders").select("id, total, status, created_at, order_items(name, quantity, price)").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("orders").select("id, total, status, created_at, payment_method, shipping_address, order_items(product_id, name, quantity, price, size, color)").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
       if (profile?.name) setName(profile.name);
       if (ords) setOrders(ords as Order[]);
@@ -46,6 +52,47 @@ const Account = () => {
     setSaving(false);
     if (error) toast({ title: "Failed to save", variant: "destructive" });
     else toast({ title: "Profile updated" });
+  };
+
+  const statusBadgeClass = (status: string) => {
+    switch (status) {
+      case "delivered": return "bg-accent/15 text-accent";
+      case "shipped": return "bg-blue-500/15 text-blue-600 dark:text-blue-400";
+      case "processing": return "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400";
+      case "cancelled": return "bg-destructive/15 text-destructive";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handleReorder = async (o: Order) => {
+    let added = 0;
+    for (const it of o.order_items ?? []) {
+      const product = productsCatalog.find(p => p.id === it.product_id);
+      if (!product) continue;
+      await addToCart(product, it.quantity, it.size ?? undefined, it.color ?? undefined);
+      added += 1;
+    }
+    if (added === 0) {
+      toast({ title: "Nothing to reorder", description: "Items are no longer available.", variant: "destructive" });
+      return;
+    }
+    navigate("/cart");
+  };
+
+  const handleDownload = (o: Order) => {
+    const subtotal = (o.order_items ?? []).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+    const shipping = Math.max(0, Number(o.total) - subtotal);
+    downloadInvoicePdf({
+      orderId: o.id,
+      createdAt: o.created_at,
+      status: o.status,
+      paymentMethod: o.payment_method ?? "cod",
+      items: (o.order_items ?? []).map(i => ({ ...i, price: Number(i.price) })),
+      subtotal,
+      shipping,
+      total: Number(o.total),
+      shippingAddress: o.shipping_address ?? null,
+    });
   };
 
   if (loading || !user) return <div className="container py-20 text-center text-muted-foreground">Loading…</div>;
@@ -87,12 +134,25 @@ const Account = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-heading font-bold">${Number(o.total).toFixed(2)}</p>
-                      <span className="text-xs uppercase tracking-wider text-accent">{o.status}</span>
+                      <span className={`inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(o.status)}`}>
+                        {o.status}
+                      </span>
                     </div>
                   </div>
-                  <ul className="text-sm text-muted-foreground space-y-0.5">
+                  <ul className="text-sm text-muted-foreground space-y-0.5 mb-3">
                     {o.order_items?.map((it, i) => <li key={i}>{it.quantity}× {it.name}</li>)}
                   </ul>
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                    <Button asChild size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <Link to={`/orders/${o.id}`}><Eye className="w-3 h-3 mr-1" /> View</Link>
+                    </Button>
+                    <Button onClick={() => handleDownload(o)} size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <Download className="w-3 h-3 mr-1" /> Invoice
+                    </Button>
+                    <Button onClick={() => handleReorder(o)} size="sm" variant="outline" className="rounded-sm h-8 text-xs">
+                      <RotateCcw className="w-3 h-3 mr-1" /> Reorder
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

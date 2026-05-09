@@ -128,6 +128,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          payment_method: string
+          shipping_address: Json | null
           status: string
           total: number
           user_id: string
@@ -135,6 +137,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          payment_method?: string
+          shipping_address?: Json | null
           status?: string
           total: number
           user_id: string
@@ -142,6 +146,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          payment_method?: string
+          shipping_address?: Json | null
           status?: string
           total?: number
           user_id?: string
@@ -172,6 +178,7 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          shipping_address: Json | null
           updated_at: string
         }
         Insert: {
@@ -179,6 +186,7 @@ export type Database = {
           created_at?: string
           id: string
           name?: string | null
+          shipping_address?: Json | null
           updated_at?: string
         }
         Update: {
@@ -186,6 +194,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string | null
+          shipping_address?: Json | null
           updated_at?: string
         }
         Relationships: []

@@ -86,6 +86,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const items: CartItemInput[] = Array.isArray(body?.items) ? body.items : [];
+    const shipping_address = body?.shipping ?? null;
+    const payment_method = body?.payment_method === "cod" ? "cod" : "cod"; // only COD supported
     if (items.length === 0) {
       await audit({ status: "rejected", reason: "empty_cart", total: 0, item_count: 0 });
       return new Response(JSON.stringify({ error: "Cart is empty" }), {
@@ -144,8 +146,15 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderErr } = await admin
       .from("orders")
-      .insert({ user_id: userId, total, status: "pending" })
+      .insert({ user_id: userId, total, status: "pending", shipping_address, payment_method })
       .select().single();
+
+    // Persist shipping address to profile for reuse on next checkout (best-effort)
+    if (shipping_address && typeof shipping_address === "object") {
+      try {
+        await admin.from("profiles").update({ shipping_address }).eq("id", userId);
+      } catch (_) { /* non-fatal */ }
+    }
     if (orderErr || !order) {
       await audit({
         product_ids: productIds, quantities, item_count: items.length,
