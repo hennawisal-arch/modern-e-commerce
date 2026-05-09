@@ -172,6 +172,23 @@ const Checkout = () => {
               </div>
             ))}
           </div>
+
+          <div className="pt-4 border-t border-border">
+            <h2 className="font-heading font-bold text-lg text-foreground mb-3">Payment Method</h2>
+            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "cod")}>
+              <label
+                htmlFor="pay-cod"
+                className="flex items-center gap-3 p-4 border border-border rounded-md cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <RadioGroupItem value="cod" id="pay-cod" />
+                <Banknote className="w-5 h-5 text-accent" />
+                <div className="flex-1">
+                  <p className="font-medium text-foreground text-sm">Cash on Delivery</p>
+                  <p className="text-xs text-muted-foreground">Pay with cash when your order arrives.</p>
+                </div>
+              </label>
+            </RadioGroup>
+          </div>
         </div>
 
         <div className="bg-card rounded-lg p-6 h-fit space-y-4">
@@ -208,7 +225,7 @@ const Checkout = () => {
             disabled={placing}
             className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-heading font-semibold h-12 rounded-sm"
           >
-            {placing ? "Placing order…" : "Pay & Place Order"}
+            {placing ? "Placing order…" : "Place Order"}
           </Button>
           <Button asChild variant="ghost" className="w-full text-muted-foreground">
             <Link to="/cart">Back to Cart</Link>
