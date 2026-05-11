@@ -39,9 +39,9 @@ const Contact = () => {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="space-y-8">
           <div className="space-y-6">
             {[
-              { icon: MapPin, label: "Address", value: "123 Fashion Ave, New York, NY 10001" },
-              { icon: Mail, label: "Email", value: "hello@eleve.com" },
-              { icon: Phone, label: "Phone", value: "+1 (555) 123-4567" },
+              { icon: MapPin, label: "Address", value: "123 Fashion Ave, Abbottabad, NY 10001" },
+              { icon: Mail, label: "Email", value: "fairsto9@gmail.com" },
+              { icon: Phone, label: "Phone", value: "+92 (555) 123-4567" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex gap-4">
                 <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
@@ -55,11 +55,16 @@ const Contact = () => {
             ))}
           </div>
           <div className="rounded-lg overflow-hidden h-48 bg-muted">
-            <iframe
+            {/* <iframe
               title="Location"
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.2!2d-73.99!3d40.75!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ1JzAwLjAiTiA3M8KwNTknMjQuMCJX!5e0!3m2!1sen!2sus!4v1"
               width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"
+            /> */}
+            <iframe
+              title="Location"
+              src="https://share.google/RHDbUiTtW9ywe0b7X"
             />
+            
           </div>
         </motion.div>
       </div>
