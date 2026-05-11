@@ -60,10 +60,16 @@ const Contact = () => {
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.2!2d-73.99!3d40.75!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ1JzAwLjAiTiA3M8KwNTknMjQuMCJX!5e0!3m2!1sen!2sus!4v1"
               width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"
             /> */}
-            <iframe
-              title="Location"
-              src="https://www.google.com/maps/place/Abbottabad,+Pakistan/@34.1750811,73.235939,13z/data=!3m1!4b1!4m6!3m5!1s0x38de3111557ac517:0x6e59a635b12e952c!8m2!3d34.1687502!4d73.2214982!16zL20vMDExaHMx?entry=ttu&g_ep=EgoyMDI2MDUwNi4wIKXMDSoASAFQAw%3D%3D"
-            />
+           <iframe
+  title="Location"
+  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13243.197979756135!2d73.235939!3d34.1750811!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38de3111557ac517%3A0x6e59a635b12e952c!2sAbbottabad%2C%20Pakistan!5e0!3m2!1sen!2s!4v1746520000000!5m2!1sen!2s"
+  width="100%"
+  height="400"
+  style="border:0;"
+  allowfullscreen=""
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade"
+></iframe>
             
           </div>
         </motion.div>
