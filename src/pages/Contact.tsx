@@ -62,7 +62,7 @@ const Contact = () => {
             /> */}
             <iframe
               title="Location"
-              src="https://share.google/RHDbUiTtW9ywe0b7X"
+              src="https://www.google.com/maps/place/Abbottabad,+Pakistan/@34.1750811,73.235939,13z/data=!3m1!4b1!4m6!3m5!1s0x38de3111557ac517:0x6e59a635b12e952c!8m2!3d34.1687502!4d73.2214982!16zL20vMDExaHMx?entry=ttu&g_ep=EgoyMDI2MDUwNi4wIKXMDSoASAFQAw%3D%3D"
             />
             
           </div>
